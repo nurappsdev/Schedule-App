@@ -6,13 +6,13 @@ plugins {
 }
 
 android {
-    namespace = "com.example.multi_parallel_test"
+    namespace = "com.example.schedule_app"
 
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     defaultConfig {
-        applicationId = "com.example.multi_parallel_test"
+        applicationId = "com.example.schedule_app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

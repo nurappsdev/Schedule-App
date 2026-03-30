@@ -112,32 +112,39 @@ class _NewScheduleScreenState extends ConsumerState<NewScheduleScreen> {
           children: [
             const Text("Select App", style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            DropdownButtonFormField<AppEntity>(
-              value: _selectedApp,
-              items: state.installedApps.map((app) {
-                return DropdownMenuItem(
-                  value: app,
-                  child: Row(
-                    children: [
-                      if (app.icon != null)
-                        Image.memory(app.icon!, width: 24, height: 24)
+            InkWell(
+              onTap: () async {
+                final AppEntity? selected = await showSearch<AppEntity?>(
+                  context: context,
+                  delegate: AppSearchDelegate(state.installedApps),
+                );
+                if (selected != null) {
+                  setState(() => _selectedApp = selected);
+                  _checkConflict();
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  children: [
+                    if (_selectedApp != null) ...[
+                      if (_selectedApp!.icon != null)
+                        Image.memory(_selectedApp!.icon!, width: 24, height: 24)
                       else
                         const Icon(Icons.android, size: 24),
                       const SizedBox(width: 8),
-                      Text(app.name),
-                    ],
-                  ),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() => _selectedApp = value);
-                _checkConflict();
-              },
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                      Text(_selectedApp!.name),
+                    ] else
+                      const Text("Choose an app", style: TextStyle(color: Colors.grey)),
+                    const Spacer(),
+                    const Icon(Icons.arrow_drop_down),
+                  ],
+                ),
               ),
-              hint: const Text("Choose an app"),
             ),
             if (_selectedApp != null) ...[
               const SizedBox(height: 4),
@@ -237,6 +244,60 @@ class _NewScheduleScreenState extends ConsumerState<NewScheduleScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class AppSearchDelegate extends SearchDelegate<AppEntity?> {
+  final List<AppEntity> apps;
+
+  AppSearchDelegate(this.apps);
+
+  @override
+  List<Widget>? buildActions(BuildContext context) {
+    return [
+      if (query.isNotEmpty)
+        IconButton(
+          icon: const Icon(Icons.clear),
+          onPressed: () => query = "",
+        ),
+    ];
+  }
+
+  @override
+  Widget? buildLeading(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.arrow_back),
+      onPressed: () => close(context, null),
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) => _buildList(context);
+
+  @override
+  Widget buildSuggestions(BuildContext context) => _buildList(context);
+
+  Widget _buildList(BuildContext context) {
+    final filtered = apps
+        .where((app) =>
+            app.name.toLowerCase().contains(query.toLowerCase()) ||
+            app.packageName.toLowerCase().contains(query.toLowerCase()))
+        .toList();
+
+    return ListView.builder(
+      itemCount: filtered.length,
+      itemBuilder: (context, index) {
+        final app = filtered[index];
+        return ListTile(
+          leading: app.icon != null
+              ? Image.memory(app.icon!, width: 32, height: 32)
+              : const Icon(Icons.android),
+          title: Text(app.name),
+          subtitle: Text(app.packageName, style: const TextStyle(fontSize: 12)),
+          onTap: () => close(context, app),
+        );
+      },
     );
   }
 }

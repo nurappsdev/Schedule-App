@@ -1,4 +1,4 @@
-# multi_parallel_test
+# Schedule-App
 
 A new Flutter project.
 
