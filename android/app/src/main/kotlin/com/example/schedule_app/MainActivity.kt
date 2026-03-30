@@ -1,4 +1,4 @@
-package com.example.multi_parallel_test
+package com.example.schedule_app
 
 import android.content.pm.PackageManager
 import android.graphics.Bitmap

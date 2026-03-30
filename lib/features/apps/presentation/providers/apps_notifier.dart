@@ -8,12 +8,14 @@ class AppsState {
   final List<AppEntity> clonedApps;
   final List<ScheduleEntity> schedules;
   final bool isLoading;
+  final String searchQuery;
 
   AppsState({
     required this.installedApps,
     required this.clonedApps,
     required this.schedules,
     required this.isLoading,
+    required this.searchQuery,
   });
 
   factory AppsState.initial() => AppsState(
@@ -21,6 +23,7 @@ class AppsState {
         clonedApps: [],
         schedules: [],
         isLoading: false,
+        searchQuery: "",
       );
 
   AppsState copyWith({
@@ -28,13 +31,23 @@ class AppsState {
     List<AppEntity>? clonedApps,
     List<ScheduleEntity>? schedules,
     bool? isLoading,
+    String? searchQuery,
   }) {
     return AppsState(
       installedApps: installedApps ?? this.installedApps,
       clonedApps: clonedApps ?? this.clonedApps,
       schedules: schedules ?? this.schedules,
       isLoading: isLoading ?? this.isLoading,
+      searchQuery: searchQuery ?? this.searchQuery,
     );
+  }
+
+  List<AppEntity> get filteredApps {
+    if (searchQuery.isEmpty) return installedApps;
+    return installedApps.where((app) {
+      return app.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+          app.packageName.toLowerCase().contains(searchQuery.toLowerCase());
+    }).toList();
   }
 }
 
@@ -44,6 +57,10 @@ class AppsNotifier extends Notifier<AppsState> {
     // Schedule loadApps to run after this build cycle
     Future.microtask(() => loadAll());
     return AppsState.initial().copyWith(isLoading: true);
+  }
+
+  void setSearchQuery(String query) {
+    state = state.copyWith(searchQuery: query);
   }
 
   Future<void> loadAll() async {

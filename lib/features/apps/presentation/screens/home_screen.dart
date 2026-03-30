@@ -3,11 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/apps_notifier.dart';
 import 'new_schedule_screen.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(appsNotifierProvider);
     final notifier = ref.read(appsNotifierProvider.notifier);
 
@@ -65,69 +78,99 @@ class HomeScreen extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return ListView.builder(
-      itemCount: state.installedApps.length,
-      itemBuilder: (context, index) {
-        final app = state.installedApps[index];
-        Widget icon = const Icon(Icons.android);
-        if (app.icon != null) {
-          icon = Image.memory(app.icon!, width: 40, height: 40);
-        }
+    final filteredApps = state.filteredApps;
 
-        return ListTile(
-          leading: icon,
-          title: Text(app.name),
-          subtitle: Text(app.packageName, style: const TextStyle(fontSize: 12)),
-          trailing: IconButton(
-            icon: const Icon(Icons.play_arrow, color: Colors.blue),
-            onPressed: () => notifier.openApp(app.packageName),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: TextField(
+            controller: _searchController,
+            onChanged: notifier.setSearchQuery,
+            decoration: InputDecoration(
+              hintText: "Search apps...",
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: state.searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchController.clear();
+                        notifier.setSearchQuery("");
+                      },
+                    )
+                  : null,
+              border: const OutlineInputBorder(),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+            ),
           ),
-          onTap: () async {
-            final confirmed = await showDialog<bool>(
-              context: context,
-              builder: (_) => AlertDialog(
-                title: Text("Clone ${app.name}?"),
-                content: const Text("Do you want to clone this app?"),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: const Text("No"),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    child: const Text("Yes"),
-                  ),
-                ],
-              ),
-            );
-
-            if (confirmed == true) {
-              try {
-                await notifier.cloneApp(app);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("${app.name} cloned successfully!"),
-                      backgroundColor: Colors.green,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("Error cloning ${app.name}: $e"),
-                      backgroundColor: Colors.red,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
+        ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: filteredApps.length,
+            itemBuilder: (context, index) {
+              final app = filteredApps[index];
+              Widget icon = const Icon(Icons.android);
+              if (app.icon != null) {
+                icon = Image.memory(app.icon!, width: 40, height: 40);
               }
-            }
-          },
-        );
-      },
+
+              return ListTile(
+                leading: icon,
+                title: Text(app.name),
+                subtitle: Text(app.packageName, style: const TextStyle(fontSize: 12)),
+                trailing: IconButton(
+                  icon: const Icon(Icons.play_arrow, color: Colors.blue),
+                  onPressed: () => notifier.openApp(app.packageName),
+                ),
+                onTap: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: Text("Clone ${app.name}?"),
+                      content: const Text("Do you want to clone this app?"),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text("No"),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text("Yes"),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true) {
+                    try {
+                      await notifier.cloneApp(app);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("${app.name} cloned successfully!"),
+                            backgroundColor: Colors.green,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("Error cloning ${app.name}: $e"),
+                            backgroundColor: Colors.red,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
