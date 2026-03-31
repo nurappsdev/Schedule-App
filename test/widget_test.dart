@@ -17,6 +17,6 @@ void main() {
 
     // Verify that we have the two tabs
     expect(find.text('All Apps'), findsOneWidget);
-    expect(find.text('Schedule Creation'), findsOneWidget);
+    expect(find.text('Schedule Management'), findsOneWidget);
   });
 }

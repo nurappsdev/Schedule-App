@@ -7,7 +7,8 @@ import '../providers/apps_notifier.dart';
 
 class NewScheduleScreen extends ConsumerStatefulWidget {
   final ScheduleEntity? existingSchedule;
-  const NewScheduleScreen({super.key, this.existingSchedule});
+  final AppEntity? initialApp;
+  const NewScheduleScreen({super.key, this.existingSchedule, this.initialApp});
 
   @override
   ConsumerState<NewScheduleScreen> createState() => _NewScheduleScreenState();
@@ -28,7 +29,10 @@ class _NewScheduleScreenState extends ConsumerState<NewScheduleScreen> {
       _selectedApp = widget.existingSchedule!.app;
       _selectedDate = widget.existingSchedule!.scheduledTime;
       _selectedTime = TimeOfDay.fromDateTime(widget.existingSchedule!.scheduledTime);
+    } else if (widget.initialApp != null) {
+      _selectedApp = widget.initialApp;
     }
+    _checkConflict();
   }
 
   @override
