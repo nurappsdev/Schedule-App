@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/apps_notifier.dart';
 import 'new_schedule_screen.dart';
+import 'schedule_management_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -32,14 +33,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           bottom: const TabBar(
             tabs: [
               Tab(icon: Icon(Icons.apps), text: "All Apps"),
-              Tab(icon: Icon(Icons.calendar_month), text: "Schedule Creation"),
+              Tab(icon: Icon(Icons.list_alt), text: "Schedule Management"),
             ],
           ),
         ),
         body: TabBarView(
           children: [
             _buildAllAppsTab(context, ref, state, notifier),
-            _buildScheduleTab(context, state, notifier),
+            const ScheduleManagementScreen(),
           ],
         ),
         floatingActionButton: Builder(
@@ -122,107 +123,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   icon: const Icon(Icons.play_arrow, color: Colors.blue),
                   onPressed: () => notifier.openApp(app.packageName),
                 ),
-                onTap: () async {
-                  final confirmed = await showDialog<bool>(
-                    context: context,
-                    builder: (_) => AlertDialog(
-                      title: Text("Clone ${app.name}?"),
-                      content: const Text("Do you want to clone this app?"),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text("No"),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text("Yes"),
-                        ),
-                      ],
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => NewScheduleScreen(initialApp: app),
                     ),
                   );
-
-                  if (confirmed == true) {
-                    try {
-                      await notifier.cloneApp(app);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text("${app.name} cloned successfully!"),
-                            backgroundColor: Colors.green,
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text("Error cloning ${app.name}: $e"),
-                            backgroundColor: Colors.red,
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      }
-                    }
-                  }
                 },
               );
             },
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildScheduleTab(
-    BuildContext context,
-    AppsState state,
-    AppsNotifier notifier,
-  ) {
-    if (state.schedules.isEmpty) {
-      return const Center(child: Text("No schedules created yet."));
-    }
-
-    return ListView.builder(
-      itemCount: state.schedules.length,
-      itemBuilder: (context, index) {
-        final schedule = state.schedules[index];
-        Widget iconWidget = const Icon(Icons.android);
-
-        if (schedule.app.icon != null) {
-          iconWidget = Image.memory(schedule.app.icon!, width: 40, height: 40);
-        }
-
-        final isPast = schedule.scheduledTime.isBefore(DateTime.now());
-
-        return ListTile(
-          leading: iconWidget,
-          title: Text(schedule.app.name),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (schedule.label.isNotEmpty)
-                Text("Label: ${schedule.label}", style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text(
-                "📅 ${schedule.scheduledTime.day}/${schedule.scheduledTime.month}/${schedule.scheduledTime.year} 🕐 ${TimeOfDay.fromDateTime(schedule.scheduledTime).format(context)}",
-                style: TextStyle(color: isPast ? Colors.red : Colors.green),
-              ),
-            ],
-          ),
-          trailing: IconButton(
-            icon: const Icon(Icons.delete, color: Colors.red),
-            onPressed: () => notifier.deleteSchedule(schedule.id),
-          ),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => NewScheduleScreen(existingSchedule: schedule),
-              ),
-            );
-          },
-        );
-      },
     );
   }
 }

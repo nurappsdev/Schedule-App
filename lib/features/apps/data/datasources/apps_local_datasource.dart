@@ -5,7 +5,8 @@ import 'package:android_intent_plus/flag.dart';
 import 'package:flutter/services.dart';
 import 'package:new_device_apps/device_apps.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import '../../domain/entities/app_entity.dart';
 import '../../domain/entities/schedule_entity.dart';
 
@@ -23,7 +24,14 @@ abstract class AppsLocalDataSource {
 
 class AppsLocalDataSourceImpl implements AppsLocalDataSource {
   static const platform = MethodChannel("multi.parallel.channel");
-  static const String _schedulesKey = 'app_schedules';
+  static const String _boxName = 'schedules_box';
+
+  Future<Box> _openBox() async {
+    if (!Hive.isBoxOpen(_boxName)) {
+      return await Hive.openBox(_boxName);
+    }
+    return Hive.box(_boxName);
+  }
 
   @override
   Future<List<AppEntity>> getInstalledApps() async {
@@ -84,35 +92,44 @@ class AppsLocalDataSourceImpl implements AppsLocalDataSource {
 
   @override
   Future<List<ScheduleEntity>> getSchedules() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? schedulesJson = prefs.getString(_schedulesKey);
-    if (schedulesJson == null) return [];
-
-    final List<dynamic> decoded = jsonDecode(schedulesJson);
-    return decoded.map((e) => ScheduleEntity.fromJson(e)).toList();
+    final box = await _openBox();
+    final List<dynamic> rawSchedules = box.values.toList();
+    return rawSchedules.map((e) => ScheduleEntity.fromJson(jsonDecode(e))).toList();
   }
 
   @override
   Future<void> saveSchedule(ScheduleEntity schedule) async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<ScheduleEntity> schedules = await getSchedules();
-    
-    // Check if updating or adding
-    final int index = schedules.indexWhere((s) => s.id == schedule.id);
-    if (index != -1) {
-      schedules[index] = schedule;
-    } else {
-      schedules.add(schedule);
-    }
+    final box = await _openBox();
+    await box.put(schedule.id, jsonEncode(schedule.toJson()));
 
-    await prefs.setString(_schedulesKey, jsonEncode(schedules.map((e) => e.toJson()).toList()));
+    // Schedule the alarm
+    final int alarmId = schedule.id.hashCode.abs();
+    await AndroidAlarmManager.oneShotAt(
+      schedule.scheduledTime,
+      alarmId,
+      callback,
+      exact: true,
+      wakeup: true,
+      allowWhileIdle: true,
+      params: {'packageName': schedule.app.packageName},
+    );
   }
 
   @override
   Future<void> deleteSchedule(String id) async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<ScheduleEntity> schedules = await getSchedules();
-    schedules.removeWhere((s) => s.id == id);
-    await prefs.setString(_schedulesKey, jsonEncode(schedules.map((e) => e.toJson()).toList()));
+    final box = await _openBox();
+    await box.delete(id);
+
+    // Cancel the alarm
+    final int alarmId = id.hashCode.abs();
+    await AndroidAlarmManager.cancel(alarmId);
+  }
+
+  @pragma('vm:entry-point')
+  static Future<void> callback(int id, Map<String, dynamic> params) async {
+    final String? packageName = params['packageName'];
+    if (packageName != null) {
+      await DeviceApps.openApp(packageName);
+    }
   }
 }
