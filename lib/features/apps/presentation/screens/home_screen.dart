@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/apps_notifier.dart';
+import '../widgets/custom_text.dart';
 import 'new_schedule_screen.dart';
 import 'schedule_management_screen.dart';
 
@@ -29,7 +30,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text("App Cloner & Scheduler"),
+          title: const CustomText(text: "App Cloner & Scheduler", fontsize: 18, fontWeight: FontWeight.bold),
           bottom: const TabBar(
             tabs: [
               Tab(icon: Icon(Icons.apps), text: "All Apps"),
@@ -117,12 +118,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
               return ListTile(
                 leading: icon,
-                title: Text(app.name),
-                subtitle: Text(app.packageName, style: const TextStyle(fontSize: 12)),
-                trailing: IconButton(
-                  icon: const Icon(Icons.play_arrow, color: Colors.blue),
-                  onPressed: () => notifier.openApp(app.packageName),
-                ),
+                title: CustomText(text: app.name, fontsize: 16, fontWeight: FontWeight.w500, textAlign: TextAlign.start),
+                subtitle: CustomText(text: app.packageName, fontsize: 12, textAlign: TextAlign.start, color: Colors.grey),
+                // trailing: IconButton(
+                //   icon: const Icon(Icons.play_arrow, color: Colors.blue),
+                //   onPressed: () => notifier.openApp(app.packageName),
+                // ),
                 onTap: () {
                   Navigator.push(
                     context,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/apps_notifier.dart';
+import '../widgets/custom_text.dart';
 import 'new_schedule_screen.dart';
 
 class ScheduleManagementScreen extends ConsumerWidget {
@@ -18,9 +19,10 @@ class ScheduleManagementScreen extends ConsumerWidget {
           children: [
             Icon(Icons.calendar_today, size: 64, color: Colors.grey),
             SizedBox(height: 16),
-            Text(
-              "No schedules created yet.",
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+            CustomText(
+              text: "No schedules created yet.",
+              fontsize: 18,
+              color: Colors.grey,
             ),
           ],
         ),
@@ -46,17 +48,21 @@ class ScheduleManagementScreen extends ConsumerWidget {
           margin: const EdgeInsets.symmetric(vertical: 4),
           child: ListTile(
             leading: iconWidget,
-            title: Text(
-              schedule.app.name,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            title: CustomText(
+              text: schedule.app.name,
+              fontsize: 16,
+              fontWeight: FontWeight.bold,
+              textAlign: TextAlign.start,
             ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (schedule.label.isNotEmpty)
-                  Text(
-                    "Label: ${schedule.label}",
-                    style: const TextStyle(fontStyle: FontStyle.italic),
+                  CustomText(
+                    text: "Label: ${schedule.label}",
+                    fontsize: 14,
+                    fontStyle: FontStyle.italic,
+                    textAlign: TextAlign.start,
                   ),
                 const SizedBox(height: 4),
                 Row(
@@ -67,18 +73,20 @@ class ScheduleManagementScreen extends ConsumerWidget {
                       color: isPast ? Colors.red : Colors.green,
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      "${schedule.scheduledTime.day}/${schedule.scheduledTime.month}/${schedule.scheduledTime.year} at ${TimeOfDay.fromDateTime(schedule.scheduledTime).format(context)}",
-                      style: TextStyle(
-                        color: isPast ? Colors.red : Colors.green,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    CustomText(
+                      text: "${schedule.scheduledTime.day}/${schedule.scheduledTime.month}/${schedule.scheduledTime.year} at ${TimeOfDay.fromDateTime(schedule.scheduledTime).format(context)}",
+                      fontsize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: isPast ? Colors.red : Colors.green,
+                      textAlign: TextAlign.start,
                     ),
                     if (isPast) ...[
                       const SizedBox(width: 8),
-                      const Text(
-                        "(Expired)",
-                        style: TextStyle(color: Colors.red, fontSize: 12),
+                      const CustomText(
+                        text: "(Expired)",
+                        fontsize: 12,
+                        color: Colors.red,
+                        textAlign: TextAlign.start,
                       ),
                     ],
                   ],
@@ -123,17 +131,17 @@ class ScheduleManagementScreen extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Delete Schedule"),
-        content: const Text("Are you sure you want to delete this schedule?"),
+        title: const CustomText(text: "Delete Schedule", fontsize: 18, fontWeight: FontWeight.bold),
+        content: const CustomText(text: "Are you sure you want to delete this schedule?", fontsize: 14),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text("CANCEL"),
+            child: const CustomText(text: "CANCEL", fontsize: 14),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text("DELETE"),
+            child: const CustomText(text: "DELETE", fontsize: 14),
           ),
         ],
       ),

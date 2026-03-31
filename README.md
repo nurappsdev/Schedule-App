@@ -61,6 +61,18 @@ A dedicated view for keeping track of all your tasks:
 
 ---
 
+## Important: Background Reliability (Real Devices)
+
+On many real Android devices (especially those with aggressive battery management like Xiaomi, Samsung, or Huawei), background tasks may be delayed or blocked. To ensure schedules trigger at the exact time:
+
+1. **Exact Alarm Permission:** On Android 12+, you may need to manually allow "Alarms & Reminders" in the app's system settings.
+2. **Ignore Battery Optimization:** 
+   - Go to **Settings > Apps > App Cloner & Scheduler > Battery**.
+   - Set it to **"Unrestricted"** or **"Don't Optimize"**.
+3. **Auto-Start:** For some manufacturers, you must enable "Auto-start" in the app info settings to allow the app to launch from a cold state.
+
+---
+
 ## Background Architecture
 
 When a schedule is saved:
