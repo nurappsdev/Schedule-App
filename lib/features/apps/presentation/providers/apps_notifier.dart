@@ -1,12 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/utils/permission_helper.dart';
 import '../../domain/entities/app_entity.dart';
 import '../../domain/entities/schedule_entity.dart';
+import 'package:flutter/services.dart';
+import '../../domain/entities/history_entity.dart';
 import 'apps_provider.dart';
 
 class AppsState {
   final List<AppEntity> installedApps;
   final List<AppEntity> clonedApps;
   final List<ScheduleEntity> schedules;
+  final List<HistoryEntity> history;
   final bool isLoading;
   final String searchQuery;
 
@@ -14,6 +18,7 @@ class AppsState {
     required this.installedApps,
     required this.clonedApps,
     required this.schedules,
+    required this.history,
     required this.isLoading,
     required this.searchQuery,
   });
@@ -22,6 +27,7 @@ class AppsState {
         installedApps: [],
         clonedApps: [],
         schedules: [],
+        history: [],
         isLoading: false,
         searchQuery: "",
       );
@@ -30,6 +36,7 @@ class AppsState {
     List<AppEntity>? installedApps,
     List<AppEntity>? clonedApps,
     List<ScheduleEntity>? schedules,
+    List<HistoryEntity>? history,
     bool? isLoading,
     String? searchQuery,
   }) {
@@ -37,6 +44,7 @@ class AppsState {
       installedApps: installedApps ?? this.installedApps,
       clonedApps: clonedApps ?? this.clonedApps,
       schedules: schedules ?? this.schedules,
+      history: history ?? this.history,
       isLoading: isLoading ?? this.isLoading,
       searchQuery: searchQuery ?? this.searchQuery,
     );
@@ -52,6 +60,8 @@ class AppsState {
 }
 
 class AppsNotifier extends Notifier<AppsState> {
+  final platform = const MethodChannel("multi.parallel.channel");
+
   @override
   AppsState build() {
     // Schedule loadApps to run after this build cycle
@@ -69,14 +79,22 @@ class AppsNotifier extends Notifier<AppsState> {
       final repository = ref.read(appsRepositoryProvider);
       final apps = await repository.getInstalledApps();
       final schedules = await repository.getSchedules();
+      final history = await repository.getHistory();
       state = state.copyWith(
         installedApps: apps,
         schedules: schedules,
+        history: history,
         isLoading: false,
       );
     } catch (e) {
       state = state.copyWith(isLoading: false);
     }
+  }
+
+  Future<void> clearHistory() async {
+    final repository = ref.read(appsRepositoryProvider);
+    await repository.clearHistory();
+    state = state.copyWith(history: []);
   }
 
   Future<void> saveSchedule(ScheduleEntity schedule) async {
@@ -102,6 +120,12 @@ class AppsNotifier extends Notifier<AppsState> {
           s.scheduledTime.hour == schedule.scheduledTime.hour &&
           s.scheduledTime.minute == schedule.scheduledTime.minute);
       throw "Conflict: ${existing.app.name} is already scheduled at this time";
+    }
+
+    // Check for permissions
+    final hasPermission = await PermissionHelper.requestAlarmPermissions();
+    if (!hasPermission) {
+      throw "Alarm permissions are required to set schedules";
     }
 
     final repository = ref.read(appsRepositoryProvider);

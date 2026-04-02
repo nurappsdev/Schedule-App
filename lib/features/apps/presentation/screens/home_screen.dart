@@ -5,6 +5,8 @@ import '../widgets/custom_text.dart';
 import 'new_schedule_screen.dart';
 import 'schedule_management_screen.dart';
 
+import 'history_screen.dart';
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -27,14 +29,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final notifier = ref.read(appsNotifierProvider.notifier);
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: const CustomText(text: "App Cloner & Scheduler", fontsize: 18, fontWeight: FontWeight.bold),
+          title: const CustomText(text: "App Scheduler", fontsize: 18, fontWeight: FontWeight.bold),
           bottom: const TabBar(
             tabs: [
-              Tab(icon: Icon(Icons.apps), text: "All Apps"),
-              Tab(icon: Icon(Icons.list_alt), text: "Schedule Management"),
+              Tab(icon: Icon(Icons.apps), text: "Apps"),
+              Tab(icon: Icon(Icons.list_alt), text: "Schedules"),
+              Tab(icon: Icon(Icons.history), text: "History"),
             ],
           ),
         ),
@@ -42,6 +45,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             _buildAllAppsTab(context, ref, state, notifier),
             const ScheduleManagementScreen(),
+            const HistoryScreen(),
           ],
         ),
         floatingActionButton: Builder(
@@ -120,10 +124,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 leading: icon,
                 title: CustomText(text: app.name, fontsize: 16, fontWeight: FontWeight.w500, textAlign: TextAlign.start),
                 subtitle: CustomText(text: app.packageName, fontsize: 12, textAlign: TextAlign.start, color: Colors.grey),
-                // trailing: IconButton(
-                //   icon: const Icon(Icons.play_arrow, color: Colors.blue),
-                //   onPressed: () => notifier.openApp(app.packageName),
-                // ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.play_arrow, color: Colors.blue),
+                  onPressed: () => notifier.openApp(app.packageName),
+                ),
                 onTap: () {
                   Navigator.push(
                     context,

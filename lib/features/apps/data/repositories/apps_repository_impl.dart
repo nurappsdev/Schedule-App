@@ -1,4 +1,5 @@
 import '../../domain/entities/app_entity.dart';
+import '../../domain/entities/history_entity.dart';
 import '../../domain/entities/schedule_entity.dart';
 import '../../domain/repositories/apps_repository.dart';
 import '../datasources/apps_local_datasource.dart';
@@ -28,4 +29,10 @@ class AppsRepositoryImpl implements AppsRepository {
 
   @override
   Future<void> deleteSchedule(String id) => localDataSource.deleteSchedule(id);
+
+  @override
+  Future<List<HistoryEntity>> getHistory() => localDataSource.getHistory();
+
+  @override
+  Future<void> clearHistory() => localDataSource.clearHistory();
 }

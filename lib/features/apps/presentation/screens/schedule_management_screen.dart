@@ -12,7 +12,11 @@ class ScheduleManagementScreen extends ConsumerWidget {
     final state = ref.watch(appsNotifierProvider);
     final notifier = ref.read(appsNotifierProvider.notifier);
 
-    if (state.schedules.isEmpty) {
+    final now = DateTime.now();
+    final activeSchedules = state.schedules.where((s) => s.scheduledTime.isAfter(now)).toList()
+      ..sort((a, b) => a.scheduledTime.compareTo(b.scheduledTime));
+
+    if (activeSchedules.isEmpty) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -20,7 +24,7 @@ class ScheduleManagementScreen extends ConsumerWidget {
             Icon(Icons.calendar_today, size: 64, color: Colors.grey),
             SizedBox(height: 16),
             CustomText(
-              text: "No schedules created yet.",
+              text: "No active schedules.",
               fontsize: 18,
               color: Colors.grey,
             ),
@@ -31,17 +35,14 @@ class ScheduleManagementScreen extends ConsumerWidget {
 
     return ListView.builder(
       padding: const EdgeInsets.all(8),
-      itemCount: state.schedules.length,
+      itemCount: activeSchedules.length,
       itemBuilder: (context, index) {
-        final schedule = state.schedules[index];
+        final schedule = activeSchedules[index];
         Widget iconWidget = const Icon(Icons.android);
 
         if (schedule.app.icon != null) {
           iconWidget = Image.memory(schedule.app.icon!, width: 40, height: 40);
         }
-
-        final now = DateTime.now();
-        final isPast = schedule.scheduledTime.isBefore(now);
 
         return Card(
           elevation: 2,
@@ -67,28 +68,22 @@ class ScheduleManagementScreen extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.access_time,
                       size: 16,
-                      color: isPast ? Colors.red : Colors.green,
+                      color: Colors.green,
                     ),
                     const SizedBox(width: 4),
-                    CustomText(
-                      text: "${schedule.scheduledTime.day}/${schedule.scheduledTime.month}/${schedule.scheduledTime.year} at ${TimeOfDay.fromDateTime(schedule.scheduledTime).format(context)}",
-                      fontsize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: isPast ? Colors.red : Colors.green,
-                      textAlign: TextAlign.start,
-                    ),
-                    if (isPast) ...[
-                      const SizedBox(width: 8),
-                      const CustomText(
-                        text: "(Expired)",
-                        fontsize: 12,
-                        color: Colors.red,
+                    Expanded(
+                      child: CustomText(
+                        text: "${schedule.scheduledTime.day}/${schedule.scheduledTime.month}/${schedule.scheduledTime.year} at ${TimeOfDay.fromDateTime(schedule.scheduledTime).format(context)}",
+                        fontsize: 14,
+                        fontWeight: FontWeight.w500,
+                        maxline: 1,
+                        color: Colors.green,
                         textAlign: TextAlign.start,
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ],

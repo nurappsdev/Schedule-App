@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../core/utils/permission_helper.dart';
 import '../../domain/entities/app_entity.dart';
 import '../../domain/entities/schedule_entity.dart';
 import '../providers/apps_notifier.dart';
@@ -187,25 +188,6 @@ class _NewScheduleScreenState extends ConsumerState<NewScheduleScreen> {
                 ),
               ],
             ),
-            if (_conflictMessage != null) ...[
-              const SizedBox(height: 32),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
-                ),
-                child: CustomText(
-                  text: _conflictMessage!,
-                  fontsize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
             const SizedBox(height: 40),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -228,6 +210,8 @@ class _NewScheduleScreenState extends ConsumerState<NewScheduleScreen> {
 
                           final schedule = ScheduleEntity(
                             id: widget.existingSchedule?.id ?? const Uuid().v4(),
+                            alarmId: widget.existingSchedule?.alarmId ??
+                                (DateTime.now().millisecondsSinceEpoch % 2147483647),
                             app: _selectedApp!,
                             label: _labelController.text,
                             scheduledTime: scheduledDateTime,
