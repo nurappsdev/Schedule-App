@@ -103,7 +103,7 @@ class AppsNotifier extends Notifier<AppsState> {
       throw "Scheduled time must be in the future";
     }
 
-    // Check for conflicts (same hour and minute)
+    // Check for conflicts (same hour and minute) - Informational only now, not a throw
     final conflict = state.schedules.any((s) =>
         s.id != schedule.id &&
         s.scheduledTime.year == schedule.scheduledTime.year &&
@@ -113,13 +113,7 @@ class AppsNotifier extends Notifier<AppsState> {
         s.scheduledTime.minute == schedule.scheduledTime.minute);
 
     if (conflict) {
-      final existing = state.schedules.firstWhere((s) =>
-          s.scheduledTime.year == schedule.scheduledTime.year &&
-          s.scheduledTime.month == schedule.scheduledTime.month &&
-          s.scheduledTime.day == schedule.scheduledTime.day &&
-          s.scheduledTime.hour == schedule.scheduledTime.hour &&
-          s.scheduledTime.minute == schedule.scheduledTime.minute);
-      throw "Conflict: ${existing.app.name} is already scheduled at this time";
+       print("Note: Another app is already scheduled at this time. Both will be launched.");
     }
 
     // Check for permissions
