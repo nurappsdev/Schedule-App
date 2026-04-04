@@ -123,10 +123,19 @@ class AppsNotifier extends Notifier<AppsState> {
     }
 
     // Check for permissions
-    final hasPermission = await PermissionHelper.requestAlarmPermissions();
-    if (!hasPermission) {
+    final hasAlarmPermission = await PermissionHelper.requestAlarmPermissions();
+    if (!hasAlarmPermission) {
       throw "Alarm permissions are required to set schedules";
     }
+
+    // Request overlay permission if not granted
+    final hasOverlayPermission = await PermissionHelper.checkAndRequestSystemAlertWindow();
+    if (!hasOverlayPermission) {
+      print("Warning: SYSTEM_ALERT_WINDOW permission not granted. Background launch may fail on Android 10+.");
+    }
+    
+    // Also ignore battery optimizations for better reliability
+    await PermissionHelper.requestIgnoreBatteryOptimizations();
 
     final repository = ref.read(appsRepositoryProvider);
     await repository.saveSchedule(schedule);
