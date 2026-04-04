@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../core/utils/permission_helper.dart';
 import '../../domain/entities/app_entity.dart';
 import '../../domain/entities/schedule_entity.dart';
 import '../providers/apps_notifier.dart';
+import '../widgets/custom_text.dart';
 
 class NewScheduleScreen extends ConsumerStatefulWidget {
   final ScheduleEntity? existingSchedule;
@@ -107,14 +109,14 @@ class _NewScheduleScreenState extends ConsumerState<NewScheduleScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.existingSchedule == null ? "New Schedule" : "Edit Schedule"),
+        title: CustomText(text: widget.existingSchedule == null ? "New Schedule" : "Edit Schedule", fontsize: 18, fontWeight: FontWeight.bold),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Select App", style: TextStyle(fontWeight: FontWeight.bold)),
+            const CustomText(text: "Select App", fontsize: 16, fontWeight: FontWeight.bold),
             const SizedBox(height: 8),
             InkWell(
               onTap: () async {
@@ -141,9 +143,9 @@ class _NewScheduleScreenState extends ConsumerState<NewScheduleScreen> {
                       else
                         const Icon(Icons.android, size: 24),
                       const SizedBox(width: 8),
-                      Text(_selectedApp!.name),
+                      CustomText(text: _selectedApp!.name, fontsize: 14, textAlign: TextAlign.start),
                     ] else
-                      const Text("Choose an app", style: TextStyle(color: Colors.grey)),
+                      const CustomText(text: "Choose an app", fontsize: 14, color: Colors.grey, textAlign: TextAlign.start),
                     const Spacer(),
                     const Icon(Icons.arrow_drop_down),
                   ],
@@ -152,10 +154,10 @@ class _NewScheduleScreenState extends ConsumerState<NewScheduleScreen> {
             ),
             if (_selectedApp != null) ...[
               const SizedBox(height: 4),
-              Text(_selectedApp!.packageName, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              CustomText(text: _selectedApp!.packageName, fontsize: 12, color: Colors.grey, textAlign: TextAlign.start),
             ],
             const SizedBox(height: 24),
-            const Text("Label (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
+            const CustomText(text: "Label (Optional)", fontsize: 16, fontWeight: FontWeight.bold),
             const SizedBox(height: 8),
             TextField(
               controller: _labelController,
@@ -165,7 +167,7 @@ class _NewScheduleScreenState extends ConsumerState<NewScheduleScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            const Text("Date & Time", style: TextStyle(fontWeight: FontWeight.bold)),
+            const CustomText(text: "Date & Time", fontsize: 16, fontWeight: FontWeight.bold),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -173,7 +175,7 @@ class _NewScheduleScreenState extends ConsumerState<NewScheduleScreen> {
                   child: OutlinedButton.icon(
                     onPressed: _selectDate,
                     icon: const Icon(Icons.calendar_today),
-                    label: Text("${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}"),
+                    label: CustomText(text: "${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}", fontsize: 14),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -181,35 +183,18 @@ class _NewScheduleScreenState extends ConsumerState<NewScheduleScreen> {
                   child: OutlinedButton.icon(
                     onPressed: _selectTime,
                     icon: const Icon(Icons.access_time),
-                    label: Text(_selectedTime.format(context)),
+                    label: CustomText(text: _selectedTime.format(context), fontsize: 14),
                   ),
                 ),
               ],
             ),
-            if (_conflictMessage != null) ...[
-              const SizedBox(height: 32),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
-                ),
-                child: Text(
-                  _conflictMessage!,
-                  style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
             const SizedBox(height: 40),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("CANCEL"),
+                  child: const CustomText(text: "CANCEL", fontsize: 14),
                 ),
                 ElevatedButton(
                   onPressed: _selectedApp == null || _conflictMessage != null
@@ -225,6 +210,8 @@ class _NewScheduleScreenState extends ConsumerState<NewScheduleScreen> {
 
                           final schedule = ScheduleEntity(
                             id: widget.existingSchedule?.id ?? const Uuid().v4(),
+                            alarmId: widget.existingSchedule?.alarmId ??
+                                (DateTime.now().millisecondsSinceEpoch % 2147483647),
                             app: _selectedApp!,
                             label: _labelController.text,
                             scheduledTime: scheduledDateTime,
@@ -236,12 +223,12 @@ class _NewScheduleScreenState extends ConsumerState<NewScheduleScreen> {
                           } catch (e) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+                                SnackBar(content: CustomText(text: e.toString(), color: Colors.white), backgroundColor: Colors.red),
                               );
                             }
                           }
                         },
-                  child: const Text("SAVE"),
+                  child: const CustomText(text: "SAVE", fontsize: 14),
                 ),
               ],
             ),
@@ -297,8 +284,8 @@ class AppSearchDelegate extends SearchDelegate<AppEntity?> {
           leading: app.icon != null
               ? Image.memory(app.icon!, width: 32, height: 32)
               : const Icon(Icons.android),
-          title: Text(app.name),
-          subtitle: Text(app.packageName, style: const TextStyle(fontSize: 12)),
+          title: CustomText(text: app.name, fontsize: 16, textAlign: TextAlign.start),
+          subtitle: CustomText(text: app.packageName, fontsize: 12, textAlign: TextAlign.start, color: Colors.grey),
           onTap: () => close(context, app),
         );
       },

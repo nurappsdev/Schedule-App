@@ -1,5 +1,6 @@
 import '../entities/app_entity.dart';
 import '../entities/schedule_entity.dart';
+import '../entities/history_entity.dart';
 
 abstract class AppsRepository {
   Future<List<AppEntity>> getInstalledApps();
@@ -11,4 +12,8 @@ abstract class AppsRepository {
   Future<List<ScheduleEntity>> getSchedules();
   Future<void> saveSchedule(ScheduleEntity schedule);
   Future<void> deleteSchedule(String id);
+
+  // History methods
+  Future<List<HistoryEntity>> getHistory();
+  Future<void> clearHistory();
 }
