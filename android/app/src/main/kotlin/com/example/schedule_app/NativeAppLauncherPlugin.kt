@@ -87,11 +87,20 @@ class NativeAppLauncherPlugin : FlutterPlugin, MethodCallHandler {
         }
     }
 
+    fun scheduleAlarmFromBoot(context: Context, packageName: String, alarmId: Int, timeMillis: Long): Boolean {
+        return scheduleAlarm(context, packageName, alarmId, timeMillis)
+    }
+
     private fun scheduleAlarm(context: Context, packageName: String, alarmId: Int, timeMillis: Long): Boolean {
+        // ১. সেভ করে রাখা (রিবুটের পর রিশিডিউল করার জন্য)
+        saveSchedule(context, alarmId, packageName, timeMillis)
+
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, AppLauncherReceiver::class.java).apply {
             action = AppLauncherReceiver.ACTION_LAUNCH_APP
             putExtra(AppLauncherReceiver.EXTRA_PACKAGE_NAME, packageName)
+            // রিসিভার যাতে জানে এটা কোন আইডি
+            putExtra("alarm_id", alarmId)
         }
         
         val pendingIntent = PendingIntent.getBroadcast(
@@ -108,30 +117,12 @@ class NativeAppLauncherPlugin : FlutterPlugin, MethodCallHandler {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 if (alarmManager.canScheduleExactAlarms()) {
-                    alarmManager.setExactAndAllowWhileIdle(
-                        AlarmManager.RTC_WAKEUP,
-                        timeMillis,
-                        pendingIntent
-                    )
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, timeMillis, pendingIntent)
                 } else {
-                    alarmManager.setAndAllowWhileIdle(
-                        AlarmManager.RTC_WAKEUP,
-                        timeMillis,
-                        pendingIntent
-                    )
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, timeMillis, pendingIntent)
                 }
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    timeMillis,
-                    pendingIntent
-                )
             } else {
-                alarmManager.setExact(
-                    AlarmManager.RTC_WAKEUP,
-                    timeMillis,
-                    pendingIntent
-                )
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, timeMillis, pendingIntent)
             }
             return true
         } catch (e: Exception) {
@@ -140,6 +131,9 @@ class NativeAppLauncherPlugin : FlutterPlugin, MethodCallHandler {
     }
 
     private fun cancelAlarm(context: Context, alarmId: Int) {
+        // ১. সেভড ডেটা থেকে রিমুভ করা
+        removeSchedule(context, alarmId)
+
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, AppLauncherReceiver::class.java).apply {
             action = AppLauncherReceiver.ACTION_LAUNCH_APP
@@ -155,6 +149,38 @@ class NativeAppLauncherPlugin : FlutterPlugin, MethodCallHandler {
             }
         )
         alarmManager.cancel(pendingIntent)
+    }
+
+    private fun saveSchedule(context: Context, alarmId: Int, packageName: String, timeMillis: Long) {
+        val prefs = context.getSharedPreferences("native_schedules", Context.MODE_PRIVATE)
+        prefs.edit().putString("schedule_$alarmId", "$packageName|$timeMillis").apply()
+    }
+
+    private fun removeSchedule(context: Context, alarmId: Int) {
+        val prefs = context.getSharedPreferences("native_schedules", Context.MODE_PRIVATE)
+        prefs.edit().remove("schedule_$alarmId").apply()
+    }
+
+    // এই ফাংশনটি BootReceiver থেকে কল করা হবে
+    fun rescheduleAll(context: Context) {
+        val prefs = context.getSharedPreferences("native_schedules", Context.MODE_PRIVATE)
+        val allSchedules = prefs.all
+        for ((key, value) in allSchedules) {
+            if (key.startsWith("schedule_")) {
+                try {
+                    val alarmId = key.replace("schedule_", "").toInt()
+                    val data = (value as String).split("|")
+                    val packageName = data[0]
+                    val timeMillis = data[1].toLong()
+
+                    if (timeMillis > System.currentTimeMillis()) {
+                        scheduleAlarm(context, packageName, alarmId, timeMillis)
+                    } else {
+                        removeSchedule(context, alarmId)
+                    }
+                } catch (e: Exception) { }
+            }
+        }
     }
 
     private fun launchApp(context: Context, packageName: String): Boolean {

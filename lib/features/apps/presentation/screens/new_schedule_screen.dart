@@ -22,6 +22,7 @@ class _NewScheduleScreenState extends ConsumerState<NewScheduleScreen> {
   DateTime _selectedDate = DateTime.now().add(const Duration(minutes: 5));
   TimeOfDay _selectedTime = TimeOfDay.fromDateTime(DateTime.now().add(const Duration(minutes: 5)));
   String? _conflictMessage;
+  bool _hasConflict = false;
 
   @override
   void initState() {
@@ -53,7 +54,10 @@ class _NewScheduleScreenState extends ConsumerState<NewScheduleScreen> {
     );
 
     if (scheduledDateTime.isBefore(DateTime.now())) {
-      setState(() => _conflictMessage = "Time must be in the future");
+      setState(() {
+        _conflictMessage = "Time must be in the future";
+        _hasConflict = false;
+      });
       return;
     }
 
@@ -73,9 +77,15 @@ class _NewScheduleScreenState extends ConsumerState<NewScheduleScreen> {
           s.scheduledTime.day == scheduledDateTime.day &&
           s.scheduledTime.hour == scheduledDateTime.hour &&
           s.scheduledTime.minute == scheduledDateTime.minute);
-      setState(() => _conflictMessage = "⚠️ Conflict Warning!\nAnother schedule exists at this time\n(${existing.app.name})");
+      setState(() {
+        _conflictMessage = "⚠️ Conflict Warning!\nAnother schedule exists at this time\n(${existing.app.name})";
+        _hasConflict = true;
+      });
     } else {
-      setState(() => _conflictMessage = null);
+      setState(() {
+        _conflictMessage = null;
+        _hasConflict = false;
+      });
     }
   }
 
@@ -188,6 +198,24 @@ class _NewScheduleScreenState extends ConsumerState<NewScheduleScreen> {
                 ),
               ],
             ),
+            if (_conflictMessage != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: _hasConflict ? Colors.orange.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _hasConflict ? Colors.orange : Colors.red),
+                ),
+                child: CustomText(
+                  text: _conflictMessage!,
+                  fontsize: 14,
+                  color: _hasConflict ? Colors.orange.shade900 : Colors.red.shade900,
+                  textAlign: TextAlign.start,
+                ),
+              ),
+            ],
             const SizedBox(height: 40),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -197,7 +225,7 @@ class _NewScheduleScreenState extends ConsumerState<NewScheduleScreen> {
                   child: const CustomText(text: "CANCEL", fontsize: 14),
                 ),
                 ElevatedButton(
-                  onPressed: _selectedApp == null || _conflictMessage != null
+                  onPressed: _selectedApp == null || (_conflictMessage != null && !_hasConflict)
                       ? null
                       : () async {
                           final scheduledDateTime = DateTime(
@@ -211,7 +239,7 @@ class _NewScheduleScreenState extends ConsumerState<NewScheduleScreen> {
                           final schedule = ScheduleEntity(
                             id: widget.existingSchedule?.id ?? const Uuid().v4(),
                             alarmId: widget.existingSchedule?.alarmId ??
-                                (DateTime.now().millisecondsSinceEpoch % 2147483647),
+                                (DateTime.now().microsecondsSinceEpoch % 2147483647),
                             app: _selectedApp!,
                             label: _labelController.text,
                             scheduledTime: scheduledDateTime,
