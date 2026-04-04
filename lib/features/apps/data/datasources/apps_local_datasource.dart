@@ -10,14 +10,13 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import '../../domain/entities/app_entity.dart';
 import '../../domain/entities/schedule_entity.dart';
-
 import '../../domain/entities/history_entity.dart';
 
-// টপ-লেভেল ফাংশন যা ব্যাকগ্রাউন্ডে কাজ করবে
+// টপ-লেভেল ফাংশন যা ব্যাকগ্রাউন্ডে হিস্ট্রি সেভ করবে
 @pragma('vm:entry-point')
-Future<void> alarmCallback(int id) async {
+Future<void> historyCallback(int id) async {
   WidgetsFlutterBinding.ensureInitialized();
-  print("🔔 [Background] Alarm Triggered for ID: $id");
+  print("🔔 [Background] History Callback Triggered for ID: $id");
 
   try {
     await Hive.initFlutter();
@@ -33,22 +32,6 @@ Future<void> alarmCallback(int id) async {
       orElse: () => throw "Schedule not found",
     );
 
-    final String packageName = schedule.app.packageName;
-    print("🚀 [Background] Launching app: $packageName");
-
-    final intent = AndroidIntent(
-      action: 'android.intent.action.MAIN',
-      category: 'android.intent.category.LAUNCHER',
-      package: packageName,
-      flags: [
-        Flag.FLAG_ACTIVITY_NEW_TASK,
-        Flag.FLAG_ACTIVITY_CLEAR_TOP,
-        Flag.FLAG_ACTIVITY_SINGLE_TOP,
-        Flag.FLAG_ACTIVITY_REORDER_TO_FRONT
-      ],
-    );
-    await intent.launch();
-
     // Save to history
     final history = HistoryEntity(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -61,9 +44,9 @@ Future<void> alarmCallback(int id) async {
     // Delete the one-shot schedule from box after execution
     await box.delete(schedule.id);
     
-    print("✅ [Background] Launch attempt finished, saved to history and cleaned up schedule.");
+    print("✅ [Background] History saved and schedule cleaned up.");
   } catch (e) {
-    print("❌ [Background] Error: $e");
+    print("❌ [Background] History Error: $e");
   }
 }
 
@@ -172,12 +155,25 @@ class AppsLocalDataSourceImpl implements AppsLocalDataSource {
     final box = await _openBox();
     await box.put(schedule.id, jsonEncode(schedule.toJson()));
 
-    print("Setting alarm for ${schedule.alarmId} at ${schedule.scheduledTime}");
+    print("Setting native alarm for ${schedule.alarmId} at ${schedule.scheduledTime}");
     
+    // ১. নেটিভ অ্যালার্ম সেট করা (অ্যাপ লঞ্চের জন্য - ১০০% গ্যারান্টি)
+    try {
+      await platform.invokeMethod("scheduleAlarm", {
+        "packageName": schedule.app.packageName,
+        "alarmId": schedule.alarmId,
+        "timeMillis": schedule.scheduledTime.millisecondsSinceEpoch,
+      });
+      print("✅ Native alarm scheduled successfully");
+    } catch (e) {
+      print("❌ Failed to schedule native alarm: $e");
+    }
+
+    // ২. ডার্ট অ্যালার্ম সেট করা (শুধুমাত্র হিস্ট্রি সেভ করার জন্য)
     await AndroidAlarmManager.oneShotAt(
       schedule.scheduledTime,
       schedule.alarmId,
-      alarmCallback, // টপ-লেভেল ফাংশন ব্যবহার করছি
+      historyCallback,
       exact: true,
       wakeup: true,
       allowWhileIdle: true,
@@ -190,6 +186,13 @@ class AppsLocalDataSourceImpl implements AppsLocalDataSource {
     final raw = box.get(id);
     if (raw != null) {
       final schedule = ScheduleEntity.fromJson(jsonDecode(raw));
+      // নেটিভ অ্যালার্ম ক্যানসেল করা
+      try {
+        await platform.invokeMethod("cancelAlarm", {"alarmId": schedule.alarmId});
+      } catch (e) {
+        print("Error cancelling native alarm: $e");
+      }
+      // ডার্ট অ্যালার্ম ক্যানসেল করা
       await AndroidAlarmManager.cancel(schedule.alarmId);
     }
     await box.delete(id);
