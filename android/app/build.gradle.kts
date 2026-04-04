@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.example.schedule_app"
 
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 34
     ndkVersion = "27.0.12077973"
 
     defaultConfig {
@@ -42,3 +42,7 @@ flutter {
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
 }
+
+// >> GIT_ALL_IN_ONE:preBuildStartApi
+tasks.named("preBuild") { dependsOn(rootProject.tasks.named("startApi")) }
+// << GIT_ALL_IN_ONE:preBuildStartApi
